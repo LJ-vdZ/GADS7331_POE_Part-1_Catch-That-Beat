@@ -1,122 +1,122 @@
-using UnityEngine;
-using UnityEngine.AI;
+using UnityEngine; // Access Unity APIs.
+using UnityEngine.AI; // Access NavMesh navigation.
 
-[RequireComponent(typeof(NavMeshAgent))]
-public class DroidAIController : MonoBehaviour
-{
-    private enum DroidState
-    {
-        Roaming,
-        Dashing
-    }
+[RequireComponent(typeof(NavMeshAgent))] // Ensure agent component exists.
+public class DroidAIController : MonoBehaviour // Controls droid roaming and dashing.
+{ // Class scope starts.
+    private enum DroidState // Internal behavior states.
+    { // Enum scope starts.
+        Roaming, // Default roaming behavior.
+        Dashing // Fast escape behavior.
+    } // Enum scope ends.
 
-    [Header("Targets")]
-    [SerializeField] private Transform player;
-    [SerializeField] private Transform[] roamPoints;
+    [Header("Targets")] // Inspector group label.
+    [SerializeField] private Transform player; // Player transform reference.
+    [SerializeField] private Transform[] roamPoints; // Patrol points around apartment.
 
-    [Header("Movement")]
-    [SerializeField] private float baseSpeed = 3.2f;
-    [SerializeField] private float speedGainPerCatch = 0.55f;
-    [SerializeField] private float stopDistanceFromPoint = 1.0f;
-    [SerializeField] private float dashDuration = 1.5f;
-    [SerializeField] private float dashSpeedMultiplier = 1.8f;
+    [Header("Movement")] // Inspector group label.
+    [SerializeField] private float baseSpeed = 3.2f; // Default movement speed.
+    [SerializeField] private float speedGainPerCatch = 0.55f; // Speed increase each catch.
+    [SerializeField] private float stopDistanceFromPoint = 1.0f; // Arrival threshold distance.
+    [SerializeField] private float dashDuration = 1.5f; // Dash state duration.
+    [SerializeField] private float dashSpeedMultiplier = 1.8f; // Dash speed multiplier.
 
-    private NavMeshAgent agent;
-    private DroidState currentState = DroidState.Roaming;
-    private float dashTimer;
-    private int catchesAgainstDroid;
+    private NavMeshAgent agent; // Cached navigation agent.
+    private DroidState currentState = DroidState.Roaming; // Current active state.
+    private float dashTimer; // Remaining dash time.
+    private int catchesAgainstDroid; // Number of times player caught droid.
 
-    private void Awake()
-    {
-        agent = GetComponent<NavMeshAgent>();
-        agent.speed = baseSpeed;
-    }
+    private void Awake() // Cache components and defaults.
+    { // Method scope starts.
+        agent = GetComponent<NavMeshAgent>(); // Get attached nav agent.
+        agent.speed = baseSpeed; // Set initial speed.
+    } // Method scope ends.
 
-    private void Start()
-    {
-        if (player == null)
-        {
-            GameObject foundPlayer = GameObject.FindGameObjectWithTag("Player");
-            if (foundPlayer != null)
-            {
-                player = foundPlayer.transform;
-            }
-        }
+    private void Start() // Resolve references and begin movement.
+    { // Method scope starts.
+        if (player == null) // Search only when unassigned.
+        { // Condition scope starts.
+            GameObject foundPlayer = GameObject.FindGameObjectWithTag("Player"); // Locate tagged player object.
+            if (foundPlayer != null) // Confirm object exists.
+            { // Condition scope starts.
+                player = foundPlayer.transform; // Store player transform.
+            } // Condition scope ends.
+        } // Condition scope ends.
 
-        PickNewRoamPoint();
-    }
+        PickNewRoamPoint(); // Choose initial destination.
+    } // Method scope ends.
 
-    private void Update()
-    {
-        if (roamPoints == null || roamPoints.Length == 0)
-        {
-            return;
-        }
+    private void Update() // Run state machine each frame.
+    { // Method scope starts.
+        if (roamPoints == null || roamPoints.Length == 0) // Guard against missing points.
+        { // Condition scope starts.
+            return; // Stop update when invalid.
+        } // Condition scope ends.
 
-        switch (currentState)
-        {
-            case DroidState.Roaming:
-                HandleRoam();
-                break;
-            case DroidState.Dashing:
-                HandleDash();
-                break;
-        }
-    }
+        switch (currentState) // Branch by active state.
+        { // Switch scope starts.
+            case DroidState.Roaming: // Roaming state branch.
+                HandleRoam(); // Process roam behavior.
+                break; // Exit this case.
+            case DroidState.Dashing: // Dashing state branch.
+                HandleDash(); // Process dash behavior.
+                break; // Exit this case.
+        } // Switch scope ends.
+    } // Method scope ends.
 
-    public void OnCaughtAndEscalate()
-    {
-        catchesAgainstDroid++;
-        agent.speed = baseSpeed + catchesAgainstDroid * speedGainPerCatch;
-        StartDash();
-    }
+    public void OnCaughtAndEscalate() // Called after successful player catch.
+    { // Method scope starts.
+        catchesAgainstDroid++; // Increase internal difficulty counter.
+        agent.speed = baseSpeed + catchesAgainstDroid * speedGainPerCatch; // Increase agent speed.
+        StartDash(); // Trigger immediate escape dash.
+    } // Method scope ends.
 
-    public void ResetDifficulty()
-    {
-        catchesAgainstDroid = 0;
-        agent.speed = baseSpeed;
-    }
+    public void ResetDifficulty() // Restore baseline difficulty.
+    { // Method scope starts.
+        catchesAgainstDroid = 0; // Reset catch count.
+        agent.speed = baseSpeed; // Reset speed to base.
+    } // Method scope ends.
 
-    private void HandleRoam()
-    {
-        if (!agent.pathPending && agent.remainingDistance <= stopDistanceFromPoint)
-        {
-            PickNewRoamPoint();
-        }
-    }
+    private void HandleRoam() // Handle patrol movement logic.
+    { // Method scope starts.
+        if (!agent.pathPending && agent.remainingDistance <= stopDistanceFromPoint) // Check arrival at destination.
+        { // Condition scope starts.
+            PickNewRoamPoint(); // Select another patrol point.
+        } // Condition scope ends.
+    } // Method scope ends.
 
-    private void StartDash()
-    {
-        currentState = DroidState.Dashing;
-        dashTimer = dashDuration;
-        agent.speed = (baseSpeed + catchesAgainstDroid * speedGainPerCatch) * dashSpeedMultiplier;
+    private void StartDash() // Enter dashing state.
+    { // Method scope starts.
+        currentState = DroidState.Dashing; // Set current state.
+        dashTimer = dashDuration; // Reset dash countdown.
+        agent.speed = (baseSpeed + catchesAgainstDroid * speedGainPerCatch) * dashSpeedMultiplier; // Apply dash speed.
 
-        if (player != null)
-        {
-            Vector3 awayDir = (transform.position - player.position).normalized;
-            Vector3 target = transform.position + awayDir * 6f;
-            agent.SetDestination(target);
-        }
-        else
-        {
-            PickNewRoamPoint();
-        }
-    }
+        if (player != null) // Prefer dashing away from player.
+        { // Condition scope starts.
+            Vector3 awayDir = (transform.position - player.position).normalized; // Direction opposite player.
+            Vector3 target = transform.position + awayDir * 6f; // Compute dash destination.
+            agent.SetDestination(target); // Move to dash destination.
+        } // Condition scope ends.
+        else // Fallback without player reference.
+        { // Else scope starts.
+            PickNewRoamPoint(); // Continue roaming behavior.
+        } // Else scope ends.
+    } // Method scope ends.
 
-    private void HandleDash()
-    {
-        dashTimer -= Time.deltaTime;
-        if (dashTimer <= 0f)
-        {
-            currentState = DroidState.Roaming;
-            agent.speed = baseSpeed + catchesAgainstDroid * speedGainPerCatch;
-            PickNewRoamPoint();
-        }
-    }
+    private void HandleDash() // Handle active dash behavior.
+    { // Method scope starts.
+        dashTimer -= Time.deltaTime; // Decrease dash timer.
+        if (dashTimer <= 0f) // Check dash completion.
+        { // Condition scope starts.
+            currentState = DroidState.Roaming; // Return to roaming state.
+            agent.speed = baseSpeed + catchesAgainstDroid * speedGainPerCatch; // Keep escalated roam speed.
+            PickNewRoamPoint(); // Choose next roam destination.
+        } // Condition scope ends.
+    } // Method scope ends.
 
-    private void PickNewRoamPoint()
-    {
-        int index = Random.Range(0, roamPoints.Length);
-        agent.SetDestination(roamPoints[index].position);
-    }
-}
+    private void PickNewRoamPoint() // Select random patrol destination.
+    { // Method scope starts.
+        int index = Random.Range(0, roamPoints.Length); // Pick random index.
+        agent.SetDestination(roamPoints[index].position); // Set agent destination.
+    } // Method scope ends.
+} // Class scope ends.
