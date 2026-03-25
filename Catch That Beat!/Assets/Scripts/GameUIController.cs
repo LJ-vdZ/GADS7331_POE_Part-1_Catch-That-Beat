@@ -1,9 +1,11 @@
 using UnityEngine; // Access Unity APIs.
 using UnityEngine.UI; // Access legacy UI text components.
 
+using TMPro;
+
 public class GameUIController : MonoBehaviour // Updates HUD and end panels.
 { // Class scope starts.
-    [SerializeField] private Text timerText; // Displays remaining round time.
+    [SerializeField] private TMP_Text timerText; // Displays remaining round time.
     [SerializeField] private Text catchesText; // Displays catches progress.
     [SerializeField] private Text stateText; // Displays current game state.
     [SerializeField] private GameObject endPanel; // Holds end-screen UI.
