@@ -1,4 +1,6 @@
+using Unity.VectorGraphics;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public class DroidInteractable : MonoBehaviour
 {
@@ -37,21 +39,10 @@ public class DroidInteractable : MonoBehaviour
         hasBeenGrabbed = true;
 
         Debug.Log(grabMessage);
+        
+        SceneManager.LoadScene("WinState");
 
-        if (winMenuPanel != null)
-        {
-            winMenuPanel.SetActive(true);
-            Cursor.lockState = CursorLockMode.None;
-            Cursor.visible = true;
-            Time.timeScale = 0f;
-        }
-        else
-        {
-            Debug.LogWarning("Win Menu Panel is not assigned!");
-        }
-
-        // Optional: Hide or disable the droid
-        // gameObject.SetActive(false);
+       
     }
 
 

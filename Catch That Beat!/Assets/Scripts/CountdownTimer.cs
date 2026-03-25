@@ -1,5 +1,6 @@
 using UnityEngine;
 using TMPro;
+using UnityEngine.SceneManagement;
 
 public class CountdownTimer : MonoBehaviour
 {
@@ -22,5 +23,10 @@ public class CountdownTimer : MonoBehaviour
         int seconds = Mathf.FloorToInt(timeRemaining%60);
 
         countdownText.text = string.Format("{0:00}:{1:00}", minutes, seconds);
+
+        if(timeRemaining <= 0) 
+        {
+            SceneManager.LoadScene("GameOver");
+        }
     }
 }
