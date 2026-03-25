@@ -4,25 +4,30 @@ using UnityEngine.AI; // Access NavMesh navigation.
 [RequireComponent(typeof(NavMeshAgent))] // Ensure agent component exists.
 public class DroidAIController : MonoBehaviour // Controls droid roaming and dashing.
 {
-    private enum DroidState { Roaming, Dashing }
+    private enum DroidState
+    {
+        Idle,      // Stationary at a checkpoint
+        Dashing    // Running away from player
+    }
 
     [Header("Targets")]
     [SerializeField] private Transform player;
-    [SerializeField] private Transform[] roamPoints;
+    [SerializeField] private Transform[] checkpoints;   // Rename your roamPoints to checkpoints for clarity
 
     [Header("Detection & Escape")]
-    [SerializeField] private float detectionRadius = 7.5f;     // How close player triggers dash
-    [SerializeField] private float dashRunTime = 2.5f;         // How long the droid runs away
-    [SerializeField] private float minDashDistance = 14f;
-    [SerializeField] private float maxDashDistance = 22f;
+    [SerializeField] private float detectionRadius = 8f;      // Player distance to trigger dash
+    [SerializeField] private float dashRunTime = 2.8f;        // How long it keeps dashing
+    [SerializeField] private float losePlayerDistance = 15f;  // How far player must be to stop dashing
+    [SerializeField] private float minDashDistance = 15f;
+    [SerializeField] private float maxDashDistance = 25f;
 
     [Header("Movement")]
-    [SerializeField] private float baseSpeed = 3.2f;
+    [SerializeField] private float baseSpeed = 3.5f;
+    [SerializeField] private float dashSpeedMultiplier = 2.3f;
     [SerializeField] private float speedGainPerCatch = 0.55f;
-    [SerializeField] private float dashSpeedMultiplier = 2.2f;
 
     private NavMeshAgent agent;
-    private DroidState currentState = DroidState.Roaming;
+    private DroidState currentState = DroidState.Idle;
     private float dashTimer;
     private int catchesAgainstDroid;
 
@@ -30,40 +35,48 @@ public class DroidAIController : MonoBehaviour // Controls droid roaming and das
     {
         agent = GetComponent<NavMeshAgent>();
         agent.speed = baseSpeed;
-        agent.stoppingDistance = 0.5f;
-        agent.autoBraking = false;           // ? Very important! Prevents stopping
-        agent.acceleration = 12f;
-        agent.angularSpeed = 300f;
+        agent.stoppingDistance = 0.6f;
+        agent.autoBraking = false;
+        agent.acceleration = 15f;
+        agent.angularSpeed = 400f;
     }
 
     private void Start()
     {
+        // Find player if not assigned
         if (player == null)
         {
             var p = GameObject.FindGameObjectWithTag("Player");
             if (p != null) player = p.transform;
         }
 
-        if (roamPoints.Length > 0)
-            PickNewRoamPoint();
+        // Spawn at a random checkpoint and stay idle
+        if (checkpoints.Length > 0)
+        {
+            SpawnAtRandomCheckpoint();
+        }
+        else
+        {
+            Debug.LogWarning("No checkpoints assigned to Droid!");
+        }
     }
 
     private void Update()
     {
-        if (player == null || roamPoints.Length == 0) return;
+        if (player == null || checkpoints.Length == 0) return;
 
         float distToPlayer = Vector3.Distance(transform.position, player.position);
 
-        // Trigger dash when player gets close
-        if (distToPlayer < detectionRadius && currentState != DroidState.Dashing)
+        // Trigger dash when player gets close while idle
+        if (distToPlayer < detectionRadius && currentState == DroidState.Idle)
         {
-            StartDash();
+            StartDashing();
         }
 
         switch (currentState)
         {
-            case DroidState.Roaming:
-                HandleRoaming();
+            case DroidState.Idle:
+                // Do nothing - stay completely still
                 break;
 
             case DroidState.Dashing:
@@ -72,57 +85,62 @@ public class DroidAIController : MonoBehaviour // Controls droid roaming and das
         }
     }
 
+    // Called from DroidInteractable when player grabs it with E
     public void OnCaughtAndEscalate()
     {
         catchesAgainstDroid++;
         agent.speed = baseSpeed + catchesAgainstDroid * speedGainPerCatch;
-        StartDash();
+        StartDashing();   // Force dash even if player is not super close
     }
 
-    private void HandleRoaming()
+    private void SpawnAtRandomCheckpoint()
     {
-        if (!agent.pathPending && agent.remainingDistance < 1.5f)
-        {
-            PickNewRoamPoint();
-        }
+        int randomIndex = Random.Range(0, checkpoints.Length);
+        Transform chosenPoint = checkpoints[randomIndex];
+
+        // Teleport droid to the checkpoint
+        transform.position = chosenPoint.position;
+        agent.Warp(chosenPoint.position);   // Important for NavMeshAgent
+
+        currentState = DroidState.Idle;
+        agent.isStopped = true;             // Make sure it's fully stopped
+        agent.ResetPath();
     }
 
-    private void StartDash()
+    private void StartDashing()
     {
         currentState = DroidState.Dashing;
         dashTimer = dashRunTime;
 
-        // Boost speed
+        // Increase speed for dash
         float normalSpeed = baseSpeed + catchesAgainstDroid * speedGainPerCatch;
         agent.speed = normalSpeed * dashSpeedMultiplier;
+        agent.isStopped = false;
 
         ChooseRandomEscapePoint();
+        Debug.Log("Droid detected player - DASHING AWAY!");
     }
 
     private void ChooseRandomEscapePoint()
     {
-        if (player == null)
-        {
-            PickNewRoamPoint();
-            return;
-        }
+        if (player == null) return;
 
         Vector3 awayDir = (transform.position - player.position).normalized;
         Vector3 bestTarget = transform.position;
         float bestScore = -Mathf.Infinity;
 
-        for (int i = 0; i < 15; i++)   // More attempts = better chance of good path
+        for (int i = 0; i < 15; i++)
         {
-            float randomAngle = Random.Range(-80f, 80f);
+            float randomAngle = Random.Range(-85f, 85f);
             Quaternion rot = Quaternion.Euler(0, randomAngle, 0);
             Vector3 testDir = rot * awayDir;
 
             float distance = Random.Range(minDashDistance, maxDashDistance);
             Vector3 testPoint = transform.position + testDir * distance;
 
-            if (NavMesh.SamplePosition(testPoint, out NavMeshHit hit, 10f, NavMesh.AllAreas))
+            if (NavMesh.SamplePosition(testPoint, out NavMeshHit hit, 12f, NavMesh.AllAreas))
             {
-                float score = Vector3.Dot(testDir, awayDir); // prefer running directly away
+                float score = Vector3.Dot(testDir, awayDir);
                 if (score > bestScore)
                 {
                     bestScore = score;
@@ -132,32 +150,34 @@ public class DroidAIController : MonoBehaviour // Controls droid roaming and das
         }
 
         agent.SetDestination(bestTarget);
-        Debug.Log("Droid dashing away to new point!");
     }
 
     private void HandleDashing(float distToPlayer)
     {
         dashTimer -= Time.deltaTime;
 
-        // End dash if time is up or player is now far away
-        if (dashTimer <= 0f || distToPlayer > detectionRadius + 8f)
+        // End dash when time runs out OR player is far away
+        if (dashTimer <= 0f || distToPlayer > losePlayerDistance)
         {
-            currentState = DroidState.Roaming;
-            agent.speed = baseSpeed + catchesAgainstDroid * speedGainPerCatch;
-            PickNewRoamPoint();
-            Debug.Log("Dash ended - back to roaming");
+            EndDashAndGoIdle();
         }
-        // Optional: Refresh escape direction every ~0.8s so it doesn't stop if player moves
-        else if (dashTimer % 0.8f < Time.deltaTime)
+        // Refresh escape direction occasionally so it doesn't get stuck
+        else if (Time.frameCount % 30 == 0)   // roughly every 0.5s
         {
             ChooseRandomEscapePoint();
         }
     }
 
-    private void PickNewRoamPoint()
+    private void EndDashAndGoIdle()
     {
-        if (roamPoints.Length == 0) return;
-        int index = Random.Range(0, roamPoints.Length);
-        agent.SetDestination(roamPoints[index].position);
+        currentState = DroidState.Idle;
+        agent.isStopped = true;
+        agent.ResetPath();
+        agent.speed = baseSpeed + catchesAgainstDroid * speedGainPerCatch;
+
+        // Go to a new random checkpoint and stay there
+        SpawnAtRandomCheckpoint();
+
+        Debug.Log("Droid lost the player - now idle at new checkpoint");
     }
-} // Class scope ends.
+} 
