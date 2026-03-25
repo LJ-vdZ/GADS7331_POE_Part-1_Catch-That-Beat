@@ -63,7 +63,7 @@ public class RoundManager : MonoBehaviour // Controls rounds, timer, and outcome
 
         if (droidAI != null) // Ensure droid reference exists.
         { // Condition scope starts.
-            droidAI.ResetDifficulty(); // Restore base droid speed.
+            //droidAI.ResetDifficulty(); // Restore base droid speed.
         } // Condition scope ends.
 
         RespawnActors(); // Move actors to spawn points.

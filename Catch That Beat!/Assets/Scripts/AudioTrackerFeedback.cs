@@ -5,8 +5,8 @@ public class AudioTrackerFeedback : MonoBehaviour // Controls dynamic droid audi
 { // Class scope starts.
     [SerializeField] private Transform player; // Player transform for distance checks.
     [SerializeField] private float maxHearingDistance = 30f; // Distance where cues fade.
-    //[SerializeField] private float minPitch = 0.92f; // Lowest pitch when far away.
-    //[SerializeField] private float maxPitch = 1.22f; // Highest pitch when very close.
+    [SerializeField] private float minPitch = 0.92f; // Lowest pitch when far away.
+    [SerializeField] private float maxPitch = 1.22f; // Highest pitch when very close.
     [SerializeField] private bool useOcclusionRaycast = true; // Toggle wall occlusion simulation.
     [SerializeField] private LayerMask occlusionLayers; // Layers treated as blocking audio.
     [SerializeField] private float occludedLowPass = 900f; // Muffled cutoff through obstacles.
@@ -48,7 +48,7 @@ public class AudioTrackerFeedback : MonoBehaviour // Controls dynamic droid audi
         float t = 1f - Mathf.Clamp01(distance / maxHearingDistance); // Normalize closeness factor.
 
         audioSource.volume = Mathf.Lerp(0.15f, 1f, t); // Increase volume when closer.
-        //audioSource.pitch = Mathf.Lerp(minPitch, maxPitch, t); // Raise pitch when closer.
+        audioSource.pitch = Mathf.Lerp(minPitch, maxPitch, t); // Raise pitch when closer.
 
         if (!useOcclusionRaycast) // Skip raycast when disabled.
         { // Condition scope starts.
