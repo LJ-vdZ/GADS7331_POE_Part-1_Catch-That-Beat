@@ -35,6 +35,14 @@ public class DroidInteractable : MonoBehaviour
     public void TryGrab()
     {
         if (hasBeenGrabbed) return;
+
+        // ? THIS IS THE MISSING CHECK
+        if (!playerIsInsideTrigger)
+        {
+            Debug.Log("Player is not inside the droid's trigger zone - too far away!");
+            return;
+        }
+
         hasBeenGrabbed = true;
 
         if (GameManager.Instance != null)
