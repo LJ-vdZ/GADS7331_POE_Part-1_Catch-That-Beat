@@ -7,34 +7,31 @@ public class GameManager : MonoBehaviour
     public static GameManager Instance { get; private set; }
 
     [Header("Round Settings")]
-    public int currentRound = 1;           // This will now persist correctly
+    public int currentRound = 1;
     public int maxRounds = 3;
 
     [Header("Timers in seconds")]
-    public float[] roundTimes = { 90f, 60f, 30f }; // Round 1: 90s, Round 2: 60s, Round 3: 30s
+    public float[] roundTimes = { 90f, 60f, 30f };
 
-    [Header("Music Clips - Assign in order (0 = Round 1)")]
+    [Header("Music Clips - Assign in order")]
     public AudioClip[] roundMusicClips;
 
     [Header("Scenes")]
     public string winSceneName = "WinScene";
-    public string loseSceneName = "GameOver";     // Change if your lose scene has a different name
+    public string loseSceneName = "GameOver";
 
     private CountdownTimer countdownTimer;
-    private static bool isFirstLoad = true;       // Helps handle first scene load
 
     private void Awake()
     {
-        // Proper singleton for scene reloading
         if (Instance == null)
         {
             Instance = this;
-            DontDestroyOnLoad(gameObject);        // ? This is the key fix
+            DontDestroyOnLoad(gameObject);        // Keep alive during rounds
         }
         else if (Instance != this)
         {
-            Destroy(gameObject);                  // Destroy duplicate
-            return;
+            Destroy(gameObject);
         }
     }
 
@@ -50,26 +47,20 @@ public class GameManager : MonoBehaviour
 
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
-        // Re-find essential objects after scene reload
         countdownTimer = FindObjectOfType<CountdownTimer>();
 
-        if (isFirstLoad)
+        // Only auto-start round if we're in the gameplay scene
+        if (scene.name != winSceneName && scene.name != loseSceneName)
         {
-            isFirstLoad = false;
-            return;
+            Invoke(nameof(StartNewRound), 0.2f);
         }
-
-        // Start the new round after reload
-        Invoke(nameof(StartNewRound), 0.1f);   // Small delay to let objects initialize
     }
 
     private void Start()
     {
-        if (isFirstLoad)
-        {
-            countdownTimer = FindObjectOfType<CountdownTimer>();
-            StartNewRound();
-        }
+        countdownTimer = FindObjectOfType<CountdownTimer>();
+        if (countdownTimer == null)
+            Debug.LogWarning("CountdownTimer not found!");
     }
 
     public void StartNewRound()
@@ -87,7 +78,7 @@ public class GameManager : MonoBehaviour
 
         PlayRoundMusic();
 
-        Debug.Log($"=== ROUND {currentRound} STARTED === Time: {thisRoundTime}s");
+        Debug.Log($"=== ROUND {currentRound} STARTED | Time: {thisRoundTime}s ===");
     }
 
     private void PlayRoundMusic()
@@ -98,11 +89,10 @@ public class GameManager : MonoBehaviour
             AudioSource audioSrc = droid.GetComponent<AudioSource>();
             if (audioSrc != null)
             {
-                audioSrc.Stop();                    // Stop previous music
+                audioSrc.Stop();
                 audioSrc.clip = roundMusicClips[currentRound - 1];
                 audioSrc.loop = true;
                 audioSrc.Play();
-                Debug.Log($"Playing music for Round {currentRound}");
             }
         }
     }
@@ -132,14 +122,47 @@ public class GameManager : MonoBehaviour
     private void WinGame()
     {
         Debug.Log("All rounds completed ? Win Scene");
+
+        // Clean up everything before going to win scene
+        CleanupAudio();
+
+        // DESTROY GameManager so WinScene is completely clean
+        if (Instance != null)
+        {
+            Destroy(Instance.gameObject);
+            Instance = null;
+        }
+
         SceneManager.LoadScene(winSceneName);
     }
 
     private void LoseGame()
     {
         Debug.Log("Time ran out ? Game Over");
+
+        CleanupAudio();
+
+        // For Lose scene we can also destroy or keep it - your choice
+        // Here we destroy it too for consistency
+        if (Instance != null)
+        {
+            Destroy(Instance.gameObject);
+            Instance = null;
+        }
+
         SceneManager.LoadScene(loseSceneName);
+    }
+
+    private void CleanupAudio()
+    {
+        AudioSource[] allSources = FindObjectsOfType<AudioSource>();
+        foreach (AudioSource src in allSources)
+        {
+            src.Stop();
+            src.clip = null;
+        }
     }
 
     public int GetCurrentRound() => currentRound;
 }
+
