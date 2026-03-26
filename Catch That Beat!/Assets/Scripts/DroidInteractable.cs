@@ -34,15 +34,19 @@ public class DroidInteractable : MonoBehaviour
     // This runs every frame in the Player's Update()
     public void TryGrab()
     {
-        if (hasBeenGrabbed || !playerIsInsideTrigger) return;
-
+        if (hasBeenGrabbed) return;
         hasBeenGrabbed = true;
 
-        Debug.Log(grabMessage);
-        
-        SceneManager.LoadScene("WinState");
+        if (GameManager.Instance != null)
+        {
+            GameManager.Instance.CatchDroid();
+        }
+        else
+        {
+            Debug.LogError("GameManager not found!");
+        }
 
-       
+
     }
 
 

@@ -4,29 +4,43 @@ using UnityEngine.SceneManagement;
 
 public class CountdownTimer : MonoBehaviour
 {
-    [SerializeField] TMP_Text countdownText;
-    [SerializeField] float timeRemaining;
+    [SerializeField] private TMP_Text countdownText;
 
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
-    void Start()
-    {
-        
-    }
+    [HideInInspector] public float timeRemaining;   // GameManager will set this
 
-    // Update is called once per frame
-    void Update()
+    private bool timerActive = true;
+
+    private void Update()
     {
+        if (!timerActive || timeRemaining <= 0) return;
+
         timeRemaining -= Time.deltaTime;
 
-        int minutes= Mathf.FloorToInt(timeRemaining/60);
-
-        int seconds = Mathf.FloorToInt(timeRemaining%60);
-
+        int minutes = Mathf.FloorToInt(timeRemaining / 60);
+        int seconds = Mathf.FloorToInt(timeRemaining % 60);
         countdownText.text = string.Format("{0:00}:{1:00}", minutes, seconds);
 
-        if(timeRemaining <= 0) 
+        if (timeRemaining < 0)
         {
-            SceneManager.LoadScene("GameOver");
+            timerActive = false;
+            // Let GameManager handle losing the round instead of directly loading GameOver
+            GameManager gm = GameManager.Instance;
+            if (gm != null)
+                gm.TimeRanOut();
+            else
+                SceneManager.LoadScene("GameOver"); // fallback
         }
+    }
+
+    // Called by GameManager at the start of each round
+    public void StartTimer(float newTime)
+    {
+        timeRemaining = newTime;
+        timerActive = true;
+    }
+
+    public void StopTimer()
+    {
+        timerActive = false;
     }
 }

@@ -143,4 +143,7 @@ public class DroidAIController : MonoBehaviour // Controls droid roaming and das
 
         Debug.Log("Droid reached checkpoint and is now idle");
     }
+
+
+  
 } 
