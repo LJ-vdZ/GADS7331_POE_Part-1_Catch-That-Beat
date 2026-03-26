@@ -1,0 +1,39 @@
+# Catch That Beat! - Dependencies / Libraries / Plugins
+
+Engine:
+- Unity Editor (LTS recommended for GitHub commits)
+- Unity Hub
+
+Language:
+- C# (.NET profile included with Unity)
+
+Core Unity Packages (recommended):
+- Input System (**required**): install via Package Manager; `PlayerControllerFPS` and `CatchDetector` use `UnityEngine.InputSystem` with explicit **WASD** keys. If **Active Input Handling** is **Input System Package** (or Both), legacy `UnityEngine.Input` APIs throw `InvalidOperationException`—these scripts avoid that.
+- TextMeshPro (for UI text)
+- AI Navigation / NavMesh (for droid pathing)
+- Post Processing (or URP/HDRP built-in post effects as needed)
+
+Render Pipeline:
+- Universal Render Pipeline (URP) recommended for stylized visuals
+
+Audio:
+- Unity Audio (3D spatial audio built-in)
+- Optional: Unity Audio Mixer for occlusion/effects control
+
+Version Control / Tooling (recommended):
+- Git (optional but recommended)
+- Cursor IDE (documentation + coding support)
+
+Assets:
+- Unity Asset Store 3D environment pack (used because Tripo 3D focuses on individual models)
+
+AI Tools used in project workflow:
+- ChatGPT
+- Grok (primary tool for Unity C# scripting)
+- Cursor (documentation/planning support only)
+- Producer AI (music generation)
+- Tripo 3D (droid character modeling)
+
+Notes:
+- Final package list may change as implementation evolves.
+- Update this file whenever dependencies are added/removed.
